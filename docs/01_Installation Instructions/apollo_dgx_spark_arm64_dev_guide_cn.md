@@ -151,6 +151,202 @@ GPU_PLATFORM: NVIDIA
 如果显示 `USE_GPU_TARGET: 0`，先确认使用的是本分支的 `scripts/apollo.bashrc`，并检查
 `nvidia-smi -L` 和 `ldconfig -p | grep cudart`。
 
+## 日常开发和测试步骤
+
+下面的命令分为两类：宿主机命令在 Apollo 仓库目录执行，容器内命令在
+`bash docker/scripts/dgx_spark_dev.sh shell` 进入的容器内执行。
+
+### 1. 启动并检查环境
+
+宿主机执行：
+
+```bash
+cd /home/my/workspace/autodrive/apollo
+git switch dgx-arm64
+git status --short --branch
+
+bash docker/scripts/dgx_spark_dev.sh start
+bash docker/scripts/dgx_spark_dev.sh status
+bash docker/scripts/dgx_spark_dev.sh shell
+```
+
+容器内确认环境：
+
+```bash
+cd /apollo
+git branch --show-current
+uname -m
+bazel --version
+nvidia-smi -L
+```
+
+预期架构为 `aarch64`，GPU 模式下应能看到 `NVIDIA GB10`。
+
+### 2. 修改源码
+
+源码目录在宿主机和容器内是同一个目录：
+
+```text
+宿主机：/home/my/workspace/autodrive/apollo
+容器内：/apollo
+```
+
+可以使用宿主机编辑器修改源码，也可以在容器内修改。修改后先检查：
+
+```bash
+git status --short
+git diff --check
+git diff
+```
+
+`.dgx-spark/`、`.cache/`、Bazel 输出和运行数据是隔离状态，不要手工提交。
+
+### 3. 增量编译
+
+修改 CyberRT 代码后，推荐执行 CPU 编译：
+
+```bash
+bash apollo.sh build_cpu cyber
+```
+
+修改其它模块时指定模块：
+
+```bash
+bash apollo.sh build_cpu planning
+bash apollo.sh build_cpu perception
+```
+
+精确到单个 Bazel target 时直接执行：
+
+```bash
+bazel build --config=cpu //cyber:cyber
+bazel build --config=cpu //cyber/mainboard:mainboard
+```
+
+GPU/NVIDIA 模式：
+
+```bash
+nvidia-smi -L
+bash apollo.sh build_nvidia cyber
+```
+
+直接使用 Bazel：
+
+```bash
+bazel query --config=nvidia //cyber:cyber --output=label
+bazel build --config=nvidia //cyber:cyber
+```
+
+### 4. 单元测试
+
+CPU 测试：
+
+```bash
+bash apollo.sh test --config=cpu cyber
+```
+
+GPU/NVIDIA 配置测试：
+
+```bash
+bash apollo.sh test --config=nvidia cyber
+```
+
+直接运行 CyberRT 测试范围：
+
+```bash
+bazel test --config=cpu //cyber/...
+bazel test --config=nvidia //cyber/...
+```
+
+运行单个测试 target：
+
+```bash
+bazel test --config=cpu //cyber/common:file_test
+```
+
+需要更详细的失败输出时：
+
+```bash
+bazel test --config=cpu --test_output=errors //cyber/common:file_test
+```
+
+`--config=nvidia` 表示使用 NVIDIA 编译配置，不代表每个单元测试都会实际调用 CUDA、
+TensorRT 或 GPU 设备；是否实际使用 GPU 取决于测试 target 的实现。
+
+### 5. 代码检查
+
+默认执行 C++ lint：
+
+```bash
+bash apollo.sh lint --cpp
+```
+
+按语言执行：
+
+```bash
+bash apollo.sh lint --py
+bash apollo.sh lint --sh
+bash apollo.sh lint --all
+```
+
+C++ lint 可能为缺少 `cpplint()` 的 BUILD 文件自动补充规则，运行前后检查工作区：
+
+```bash
+git status --short
+git diff --check
+git diff
+```
+
+### 6. 提交前最小检查
+
+普通 CPU 修改建议执行：
+
+```bash
+bash apollo.sh build_cpu cyber
+bash apollo.sh test --config=cpu cyber
+bash apollo.sh lint --cpp
+git diff --check
+git status --short
+```
+
+涉及 GPU 代码时增加：
+
+```bash
+bash apollo.sh build_nvidia cyber
+bash apollo.sh test --config=nvidia cyber
+```
+
+`bash apollo.sh check` 会执行较大范围的构建、测试和 C++ lint，首次开发不建议直接执行。
+
+### 7. 停止、重新进入和清理
+
+离开容器但保持容器运行：
+
+```bash
+exit
+```
+
+之后重新进入：
+
+```bash
+bash docker/scripts/dgx_spark_dev.sh shell
+```
+
+结束本次开发时，在宿主机执行：
+
+```bash
+bash docker/scripts/dgx_spark_dev.sh stop
+```
+
+下次执行 `start` 会复用已有容器和隔离缓存。仅在确认需要时清理 Bazel 缓存：
+
+```bash
+bazel clean
+bazel clean --expunge
+```
+
+`--expunge` 会删除大量增量缓存，下一次构建会明显变慢，不应作为日常操作。
+
 ## 当前验证结果
 
 在 2026-09-13 的 DGX Spark 环境中已验证：
