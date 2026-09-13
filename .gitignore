@@ -69,6 +69,7 @@ docs/demo_guide/*.record
 
 # bazel cache and others
 .cache/
+.dgx-spark/
 .apollo.bazelrc
 .errors.log
 
