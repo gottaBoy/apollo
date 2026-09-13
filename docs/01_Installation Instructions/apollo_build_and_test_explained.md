@@ -7,6 +7,9 @@ This document focuses on how to build and test Apollo in different ways.
 You are supposed to have followed
 [Apollo Software Installation Guide](./apollo_software_installation_guide.md).
 Make sure you are in Apollo development Docker container before you proceed.
+For NVIDIA DGX Spark ARM64 source development, use the isolated
+[DGX Spark ARM64 development guide](./apollo_dgx_spark_arm64_dev_guide_cn.md)
+to start and enter the container first.
 
 ## Overview
 

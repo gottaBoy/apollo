@@ -21,7 +21,21 @@ info() { printf '%s\n' "$*"; }
 
 usage() {
   cat <<EOF
-Usage: $0 [--name NAME] [--image IMAGE] [--cpu] {start|shell|stop|status}
+Usage: $0 [--name NAME] [--image IMAGE] [--gpu-id ID] [--cpu] {start|shell|stop|status}
+
+Modes:
+  start                         Start with GPU auto-detection (default GPU 0)
+  --cpu start                   Start without injecting a GPU
+  shell                         Enter the running development container
+  status                        Show the container and isolated mounts
+  stop                          Stop only this harness container
+
+Examples:
+  $0 start
+  $0 --cpu start
+  $0 shell
+  $0 status
+  $0 stop
 
 Environment overrides:
   APOLLO_DGX_SPARK_CONTAINER  Container name (default: ${CONTAINER})

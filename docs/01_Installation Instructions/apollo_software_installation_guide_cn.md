@@ -40,6 +40,10 @@ echo "export APOLLO_ROOT_DIR=$(pwd)" >> ~/.bashrc  && source ~/.bashrc
 
 ## 启动Docker容器
 
+如果使用 NVIDIA DGX Spark ARM64 主机进行源码开发，请使用专用的
+[DGX Spark ARM64 源码开发指南](./apollo_dgx_spark_arm64_dev_guide_cn.md)，不要直接复用下面的通用
+`dev_start.sh` 流程。
+
 在`${APOLLO_ROOT_DIR}`目录, 输入：
 
 ```bash

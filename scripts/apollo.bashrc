@@ -117,12 +117,18 @@ function determine_gpu_use_target() {
     use_gpu=1
   else
     if [[ "${arch}" == "aarch64" ]]; then
+      # Jetson exposes the nvgpu module, while DGX Spark exposes the NVIDIA
+      # driver through the container runtime. Support both ARM64 layouts.
+      local nvidia_device=1
       if lsmod | grep -q nvgpu; then
-        if ldconfig -p | grep -q cudart; then
-          use_gpu=1
-          need_cuda=1
-          gpu_platform="NVIDIA"
-        fi
+        nvidia_device=0
+      elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+        nvidia_device=0
+      fi
+      if [[ "${nvidia_device}" -eq 0 ]] && ldconfig -p | grep -q cudart; then
+        use_gpu=1
+        need_cuda=1
+        gpu_platform="NVIDIA"
       fi
     else ## x86_64 mode
       # Check the existence of nvidia-smi and rocm-smi
