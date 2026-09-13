@@ -361,3 +361,6 @@ Apollo 现有部分 ARM64 第三方依赖仍带有旧 Jetson/CUDA/TensorRT 假�
 
 更多通用 CPU/GPU 构建说明参见
 [Apollo 构建和测试说明](./apollo_build_and_test_explained.md)。
+
+从入门到局部模块开发的 21 天练习计划参见
+[DGX Spark ARM64 三周学习与练习计划](./apollo_dgx_spark_arm64_3_week_learning_plan_cn.md)。
